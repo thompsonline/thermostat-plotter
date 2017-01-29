@@ -58,8 +58,8 @@ class MyLogger(object):
                 if message.rstrip() != "":
                         self.logger.log(self.level, message.rstrip())
 
-sys.stdout = MyLogger(logger, logging.INFO)
-sys.stderr = MyLogger(logger, logging.ERROR)
+#sys.stdout = MyLogger(logger, logging.INFO)
+#sys.stderr = MyLogger(logger, logging.ERROR)
 
 CONN_PARAMS = (config.get('main','mysqlHost'), config.get('main','mysqlUser'),
                config.get('main','mysqlPass'), config.get('main','mysqlDatabase'),
@@ -162,11 +162,11 @@ class autoPlotDaemon():
     def createPlots(self, now):
         plotLinks = []
 
-        sensorUrls = self.sensorPlots(now)
+	sensorUrls = self.sensorPlots(now)
         for url in sensorUrls:
             plotLinks.append(url)
 
-        controlUrls = self.controlPlots(now)
+	controlUrls = self.controlPlots(now)
         for url in controlUrls:
             plotLinks.append(url)
 
@@ -215,42 +215,45 @@ class autoPlotDaemon():
 
         cursor.execute('SELECT moduleID from ModuleInfo')
         modIDs = [int(entry[0]) for entry in cursor.fetchall()]
-        
+       
         dayPlot = plotly.get_figure(PLOTLY_USER, file_id=PLOTLY_ID1)
         monthPlot = plotly.get_figure(PLOTLY_USER, file_id=PLOTLY_ID2)
 
         dataList=[]
         monthData=[]
         dayData=[]
+
         for colorInd, mod in enumerate(modIDs):
             cursor.execute('SELECT timestamp,temperature,location from SensorData WHERE moduleID=%s'%(str(mod)))
             dataList.append(np.asarray(cursor.fetchall()))
             
-            # now = datetime.datetime.now()
-
             colors = ['blue', 'orange', 'green', 'yellow', 'red']
             try:
+                # Load every 20th temp reading 
                 plotMonth = np.asarray([[data[0],float(data[1]),data[2]] for ind,data in enumerate(dataList[-1]) if ind%20 == 0])
-                plotMonth = np.asarray([data for data in plotMonth if data[0].month == now.month and
-                                        data[0].year == now.year])
-                plotDay = np.asarray([ [ data[0],float(data[1]),data[2] ]for data in dataList[-1] if (now-data[0]).days < 1])
-                if plotMonth.shape[0] == 0 or plotDay.shape[0] == 0:
-                    logger.debug('shape %d' % plotMonth.shape[0] + ' dayshape %d' % plotDay.shape[0])
-                    continue
                 
-                monthData.append(Scatter(x=plotMonth[:,0],y=plotMonth[:,1],mode='lines',
-                                     name=plotMonth[0,2],line=Line(color=colors[colorInd],width=1)))
-                dayData.append(Scatter(x=plotDay[:,0],y=plotDay[:,1],mode='lines',name=plotDay[0,2],
-                                       line=Line(color=colors[colorInd],width=1)))
+                # Now, use only those elements for this month and year
+                plotMonth = np.asarray([data for data in plotMonth if data[0].month == now.month and data[0].year == now.year])
 
+                plotDay = np.asarray([ [ data[0],float(data[1]),data[2] ]for data in dataList[-1] if (now-data[0]).days < 1])
+
+		if plotMonth.shape[0] != 0:
+                  monthData.append(Scatter(x=plotMonth[:,0],y=plotMonth[:,1],mode='lines',
+                                           name=plotMonth[0,2],line=Line(color=colors[colorInd],width=1)))
+
+                if plotDay.shape[0] != 0:
+                  dayData.append(Scatter(x=plotDay[:,0],y=plotDay[:,1],mode='lines',name=plotDay[0,2],
+                                         line=Line(color=colors[colorInd],width=1)))
             except IndexError:
                 pass
-
+            
         dayPlot['data']=Data(dayData)
-        day_url = plotly.plot(dayPlot,filename='day_plot', auto_open=False)
+        if len(dayPlot.data) > 0:
+          day_url = plotly.plot(dayPlot,filename='day_plot', auto_open=False)
 
         monthPlot['data']=Data(monthData)
-        month_url = plotly.plot(monthPlot,filename='month_plot', auto_open=False)
+        if len(monthPlot.data) > 0:
+          month_url = plotly.plot(monthPlot,filename='month_plot', auto_open=False)
 
         conn.close()
 
@@ -338,14 +341,14 @@ class autoPlotDaemon():
         conn = mdb.connect(CONN_PARAMS[0],CONN_PARAMS[1],CONN_PARAMS[2],CONN_PARAMS[3],port=CONN_PARAMS[4])
 
         cursor = conn.cursor()
-        timestamp = datetime.datetime.now().strftime('%m-%d-%y-%X')
+        timestamp = datetime.datetime.now().strftime('%y-%m-%d-%X')
         timestamp = re.sub(':', '-', timestamp)
         backDir = MYSQL_BACKUP_DIR
 
-        cursor.execute("SELECT * INTO OUTFILE '%s' FROM ThermostatLog"%(os.path.join(backDir,timestamp+'ThermostatLog.csv')))
+        cursor.execute("SELECT * INTO OUTFILE '%s' FROM ThermostatLog"%(os.path.join(backDir,'ThermostatLog-'+timestamp+'.csv')))
         conn.commit()
 
-        cursor.execute("SELECT * INTO OUTFILE '%s' FROM SensorData"%(os.path.join(backDir,timestamp+'SensorData.csv')))
+        cursor.execute("SELECT * INTO OUTFILE '%s' FROM SensorData"%(os.path.join(backDir,'SensorData-'+timestamp+'.csv')))
         conn.commit()
 
         cursor.execute("DELETE FROM SensorData WHERE timeStamp < TIMESTAMP(DATE_SUB(NOW(), INTERVAL 35 DAY))")
@@ -364,6 +367,7 @@ class autoPlotDaemon():
     def run(self,debug=False):
         plot = False
         backup = False
+	first = True
         while True:
             try:
                 curModule, targTemp, targMode, expTime = self.getThermSet()
@@ -373,7 +377,9 @@ class autoPlotDaemon():
                 actProg = self.getProg()
                 timeList = self.getProgTimes(actProg)
 
-                if curTime>expTime:
+                if curTime>expTime or first:
+
+                    first = False
 
                     conn = mdb.connect(CONN_PARAMS[0],CONN_PARAMS[1],CONN_PARAMS[2],CONN_PARAMS[3],port=CONN_PARAMS[4])
 
