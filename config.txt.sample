@@ -10,26 +10,19 @@ logcount = 3
 [main]
 
 # Enter all of your plotly information
-plotlyUser = <plotly user>
-plotlyKey = <plotly key>
+plotlyUser = thompsonline
+plotlyKey = OsZPcWc04pWbKG3p9iq6
 plotlyPlot1 = https://plot.ly/~thompsonline/5
 plotlyPlot2 = https://plot.ly/~thompsonline/7
 plotlyPlot3 = https://plot.ly/~thompsonline/9
 plotlyPlot4 = https://plot.ly/~thompsonline/11
 
 # MySQL Credentials
-mysqlUser = <mysql user id>
-mysqlPass = <mysql password>
-mysqlDatabase = Thermostat
+mysqlUser = <user>
+mysqlPass = <pass>
+mysqlDatabase = thermostat
 mysqlHost = localhost
 mysqlPort = 3306
 mysqlBackup = True
 mysqlBackupDir = /tmp
 
-# Weather setup. You can look up your NOAA Code at:
-# http://w1.weather.gov/xml/current_obs/seek.php?state=az&Find=Find
-# WeatherModuleID should be the moduleID field that you have labeled
-# as "outside".
-NOAAWeather = True
-NOAACode = KFTG
-WeatherModuleID = 2

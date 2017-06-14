@@ -78,13 +78,6 @@ PLOTLY_ID4 = os.path.split(config.get('main','plotlyPlot4'))[-1]
 plotly.sign_in(PLOTLY_USER, PLOTLY_KEY)
 
 
-WEB_WEATHER = config.getboolean('main','NOAAWeather')
-if WEB_WEATHER:
-    WEATHER_ID = config.get('main','NOAACode')
-
-OUTSIDE_ID = config.get('main','WeatherModuleID')
-
-
 class autoPlotDaemon():
     def getThermSet(self):
         conn = mdb.connect(CONN_PARAMS[0],CONN_PARAMS[1],CONN_PARAMS[2],CONN_PARAMS[3],port=CONN_PARAMS[4])
@@ -196,11 +189,6 @@ class autoPlotDaemon():
         dayHeatHours = np.trapz(statDay[:,2],daySec)/3600.0
         dayAuxHours = np.trapz(statDay[:,4],daySec)/3600.0
 
-        weatherDict = pywapi.get_weather_from_noaa(WEATHER_ID)
-        temp_f = weatherDict['temp_f']
-
-        cursor.execute("INSERT SensorData SET moduleID=%s, location='outside', temperature=%s"%(OUTSIDE_ID,str(temp_f)))
-
         conn.commit()
         cursor.close()
         conn.close()
@@ -270,7 +258,7 @@ class autoPlotDaemon():
         cursor.execute('SELECT timestamp,targetTemp,actualTemp from ThermostatLog')
         controlData = np.asarray(cursor.fetchall())
 
-        cursor.execute("SELECT timestamp,temperature from SensorData WHERE moduleID=%s"%(OUTSIDE_ID))
+        cursor.execute("SELECT timestamp,temperature from SensorData WHERE moduleID=0")
         weatherData = np.asarray(cursor.fetchall())
 
         monthData = []
