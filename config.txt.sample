@@ -10,8 +10,8 @@ logcount = 3
 [main]
 
 # Enter all of your plotly information
-plotlyUser = thompsonline
-plotlyKey = OsZPcWc04pWbKG3p9iq6
+plotlyUser = <user>
+plotlyKey = <pwd>
 plotlyPlot1 = https://plot.ly/~thompsonline/5
 plotlyPlot2 = https://plot.ly/~thompsonline/7
 plotlyPlot3 = https://plot.ly/~thompsonline/9
